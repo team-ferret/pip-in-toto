@@ -184,6 +184,15 @@ class InstallCommand(RequirementCommand):
             help="Do not compile py files to pyc",
         )
 
+        #toto option
+        cmd_opts.add_option(
+            "--toto-verify",
+            type="string",
+            nargs=2,
+            dest='toto_verify',
+            help="toto verify <layout> <layout-keys>",
+        )
+
         cmd_opts.add_option(cmdoptions.use_wheel())
         cmd_opts.add_option(cmdoptions.no_use_wheel())
         cmd_opts.add_option(cmdoptions.no_binary())
@@ -317,6 +326,7 @@ class InstallCommand(RequirementCommand):
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
+                    toto_verify=options.toto_verify
                 )
 
                 self.populate_requirement_set(
@@ -328,10 +338,9 @@ class InstallCommand(RequirementCommand):
                     return
 
                 try:
-                    #print "options.download_dir: %s | wheel:%s | options.cache_dir:%s" % (options.download_dir, wheel, options.cache_dir)
+                    ####print "options.download_dir: %s | wheel:%s | options.cache_dir:%s" % (options.download_dir, wheel, options.cache_dir)
                     if (options.download_dir or not wheel or not
                             options.cache_dir):
-                        print "install.py 335 if (options.download_dir or not wheel or not options.cache_dir)"
                         # on -d don't do complex things like building
                         # wheels, and don't try to build wheels when wheel is
                         # not installed.
@@ -525,3 +534,4 @@ def in_toto_verify(layout_path, layout_key_paths):
         _die("in verify all inspection matchrules - %s" % e)
 
     log.passing("all verification")
+
