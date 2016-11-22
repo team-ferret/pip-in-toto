@@ -278,7 +278,6 @@ class RequirementCommand(Command):
             )
 
         for req in options.editables:
-            print "these in option.editables basecommand.py 281"
             requirement_set.add_requirement(
                 InstallRequirement.from_editable(
                     req,

@@ -106,7 +106,6 @@ def make_abstract_dist(req_to_install):
     :return: A concrete DistAbstraction.
     """
     if req_to_install.editable:
-        "print req_to_install.editable is TRUE"
         return IsSDist(req_to_install)
     elif req_to_install.link and req_to_install.link.is_wheel:
         return IsWheel(req_to_install)
@@ -158,7 +157,7 @@ class RequirementSet(object):
                  force_reinstall=False, use_user_site=False, session=None,
                  pycompile=True, isolated=False, wheel_download_dir=None,
                  wheel_cache=None, require_hashes=False,
-                 ignore_requires_python=False):
+                 ignore_requires_python=False, toto_verify=None):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -209,6 +208,9 @@ class RequirementSet(object):
         self.require_hashes = require_hashes
         # Maps from install_req -> dependencies_of_install_req
         self._dependencies = defaultdict(list)
+
+        #toto
+        self.toto_verify = toto_verify
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -520,7 +522,6 @@ class RequirementSet(object):
             # ################################ #
             if req_to_install.editable:
                 if require_hashes:
-                    print "require_hashes"
                     raise InstallationError(
                         'The editable requirement %s cannot be installed when '
                         'requiring hashes, because there is no single file to '
@@ -530,12 +531,10 @@ class RequirementSet(object):
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
                 if self.is_download:
-                    print "self.is_download line 535: archive"
                     req_to_install.archive(self.download_dir)
                 req_to_install.check_if_exists()
-                in_toto_verify_wrapper(req_to_install.source_dir)
+                in_toto_verify_wrapper(req_to_install.source_dir, toto_verify=self.toto_verify)
             elif req_to_install.satisfied_by:
-                print "req_to_install.satisfied_by iS TRUE 539 "
                 if require_hashes:
                     logger.debug(
                         'Since it is already installed, we are trusting this '
@@ -548,7 +547,6 @@ class RequirementSet(object):
                 # editable in a req, a non deterministic error
                 # occurs when the script attempts to unpack the
                 # build directory
-                print "req_to_install.ensure_has_source_dir(self.build_dir)"
                 req_to_install.ensure_has_source_dir(self.build_dir)
                 # If a checkout exists, it's unwise to keep going.  version
                 # inconsistencies are logged later, but do not fail the
@@ -631,12 +629,11 @@ class RequirementSet(object):
                             # When installing a wheel, we use the unpacked
                             # wheel.
                             autodelete_unpacked = False
-                    print "unpacking the tar.gz "
                     #print "req.source_dir: %s, req_to_install.link: %s, download_dir: %s" % (req_to_install.source_dir, req_to_install.link, download_dir)
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
-                        session=self.session, hashes=hashes)
+                        session=self.session, hashes=hashes, toto_verify=self.toto_verify)
 
 
                 except requests.HTTPError as exc:
@@ -654,23 +651,16 @@ class RequirementSet(object):
                 abstract_dist = make_abstract_dist(req_to_install)
                 abstract_dist.prep_for_dist()
                 if self.is_download:
-                    print "self.is_download"
                     # Make a .zip of the source_dir we already created.
                     if req_to_install.link.scheme in vcs.all_schemes:
-                        print "req_to_install.link scheme in vcs.all schemes"
                         req_to_install.archive(self.download_dir)
                 # req_to_install.req is only avail after unpack for URL
                 # pkgs repeat check_if_exists to uninstall-on-upgrade
                 # (#14)
                 if not self.ignore_installed:
-                    print "not self.ignore_installed"
                     req_to_install.check_if_exists()
                 if req_to_install.satisfied_by:
-                    print "req_set 670: req_to_install.satisfied_by" 
-                    allops = vars(req_to_install)
-                    print ', '.join("%s: %s" % item for item in allops.items())
                     if self.upgrade or self.ignore_installed:
-                        print "self.upgrade or self.ignore"
                         # don't uninstall conflict if user install and
                         # conflict is not user install
                         if not (self.use_user_site and not
@@ -893,10 +883,16 @@ def in_toto_verify(layout_path, layout_key_paths):
 
     log.passing("all verification")
 
-def in_toto_verify_wrapper(location):
+def in_toto_verify_wrapper(location, toto_verify=None, layout_path="root.layout", layout_keys="alice.pub" ):
     original_cwd = os.getcwd()
     os.chdir(location)
-    in_toto_verify("root.layout", {'alice.pub'})
-    os.chdir(original_cwd)
 
+    if toto_verify:
+        layout_key_paths = toto_verify[1].split(',')
+        in_toto_verify(toto_verify[0], layout_key_paths)
+    else:
+        layout_key_paths = layout_keys.split(',')
+        in_toto_verify(layout_path, layout_key_paths)
+
+    os.chdir(original_cwd)
 
