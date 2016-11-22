@@ -12,7 +12,7 @@ import re
 import shutil
 import sys
 import tempfile
-import time
+
 #import statements for in-toto
 import argparse
 
@@ -488,10 +488,10 @@ def is_archive_file(name):
     return False
 
 
-def unpack_vcs_link(link, location):
-    print "unpack_vcs_link: %s ;%s" % (link,location)
+def unpack_vcs_link(link, location, toto_verify=None):
     vcs_backend = _get_used_vcs_backend(link)
     vcs_backend.unpack(location)
+    in_toto_verify_wrapper(location, toto_verify=toto_verify)
 
 
 def _get_used_vcs_backend(link):
@@ -616,7 +616,7 @@ def _download_url(resp, link, content_file, hashes):
     )
     if hashes:
         hashes.check_against_chunks(downloaded_chunks)
-        print "This is where we should put our code"
+        
     else:
         consume(downloaded_chunks)
 
@@ -624,7 +624,7 @@ def _download_url(resp, link, content_file, hashes):
 def _copy_file(filename, location, link):
     copy = True
     download_location = os.path.join(location, link.filename)
-    print "Loc:"+ location
+    
     if os.path.exists(download_location):
         response = ask_path_exists(
             'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort' %
@@ -650,13 +650,13 @@ def _copy_file(filename, location, link):
 
 
 def unpack_http_url(link, location, download_dir=None,
-                    session=None, hashes=None):
+                    session=None, hashes=None, toto_verify=None):
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
         )
 
-    print "unpack_http_url(link:%s,location:%s)" % (link, location)
+    
     temp_dir = tempfile.mkdtemp('-unpack', 'pip-')
 
     # If a download dir is specified, is the file already downloaded there?
@@ -678,47 +678,40 @@ def unpack_http_url(link, location, download_dir=None,
 
     # unpack the archive to the build dir location. even when only downloading
     # archives, they have to be unpacked to parse dependencies
-    print "Unpacking the file now"
     unpack_file(from_path, location, content_type, link)
-    print "download_dir: %s temp_dir: %s " % (download_dir, temp_dir)
+    
     # a download dir is specified; let's copy the archive there
     if download_dir and not already_downloaded_path:
         _copy_file(from_path, download_dir, link)
-    print "From path:" + from_path
+    
     if not already_downloaded_path:
         os.unlink(from_path)
 
     #intoto verification
-    print "about to delete location: %s" % location
-    in_toto_verify_wrapper(location)
-    print "Finished unpacking | deleting temp dir"
-    #
+    in_toto_verify_wrapper(location, toto_verify=toto_verify)
+    #####################
 
     rmtree(temp_dir)
 
 
-def unpack_file_url(link, location, download_dir=None, hashes=None):
+def unpack_file_url(link, location, download_dir=None, hashes=None, toto_verify=None):
     """Unpack link into location.
 
     If download_dir is provided and link points to a file, make a copy
     of the link file inside download_dir.
     """
     link_path = url_to_path(link.url_without_fragment)
-    print "unpack_file_url()"
+    ####print "unpack_file_url()"
     # If it's a url to a local directory
     if is_dir_url(link):
         if os.path.isdir(location):
-            print "rmtree(location)"
             rmtree(location)
         shutil.copytree(link_path, location, symlinks=True)
         if download_dir:
-            print "ITS a DOWNLOAD_DIR"
             logger.info('Link is a directory, ignoring download_dir')
-        print "return since its a local directory"
-        print "I'm going to verify toto local "
-        in_toto_verify_wrapper(location)
+        in_toto_verify_wrapper(location, toto_verify=toto_verify)
         return
-    print "outside of if is_dir_url"
+    ####print "outside of if is_dir_url"
     # If --require-hashes is off, `hashes` is either empty, the
     # link's embedded hash, or MissingHashes; it is required to
     # match. If --require-hashes is on, we are satisfied by any
@@ -730,7 +723,6 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
-        print "if download_dir:%s link:%s " (download_dir, link)
         already_downloaded_path = _check_download_dir(link,
                                                       download_dir,
                                                       hashes)
@@ -747,14 +739,12 @@ def unpack_file_url(link, location, download_dir=None, hashes=None):
     unpack_file(from_path, location, content_type, link)
     
     #intoto verification
-    print "unpack_file_url"
-    print "about to delete location: %s" % location
-    in_toto_verify_wrapper(location)
+    ####print "about to delete location: %s" % location
+    in_toto_verify_wrapper(location, toto_verify=toto_verify)
 
     # a download dir is specified and not already downloaded
     if download_dir and not already_downloaded_path:
         _copy_file(from_path, download_dir, link)
-        print "not already downloaded"
 
 
 def _copy_dist_from_dir(link_path, location):
@@ -771,7 +761,7 @@ def _copy_dist_from_dir(link_path, location):
     # directory, because it copies everything with `shutil.copytree`.
     # What it should really do is build an sdist and install that.
     # See https://github.com/pypa/pip/issues/2195
-    print "copy_dist_from_dir(link_path:%s, location:%s)" % (link_path, location)
+
     if os.path.isdir(location):
         rmtree(location)
 
@@ -791,7 +781,6 @@ def _copy_dist_from_dir(link_path, location):
     sdist = os.path.join(location, os.listdir(location)[0])
     logger.info('Unpacking sdist %s into %s', sdist, location)
     unpack_file(sdist, location, content_type=None, link=None)
-
 
 class PipXmlrpcTransport(xmlrpc_client.Transport):
     """Provide a `xmlrpclib.Transport` implementation via a `PipSession`
@@ -823,7 +812,7 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 
 def unpack_url(link, location, download_dir=None,
-               only_download=False, session=None, hashes=None):
+               only_download=False, session=None, hashes=None, toto_verify=None):
     """Unpack link.
        If link is a VCS link:
          if only_download, export into download_dir and ignore location
@@ -840,11 +829,11 @@ def unpack_url(link, location, download_dir=None,
     """
     # non-editable vcs urls
     if is_vcs_url(link):
-        unpack_vcs_link(link, location)
+        unpack_vcs_link(link, location, toto_verify=toto_verify)
 
     # file urls
     elif is_file_url(link):
-        unpack_file_url(link, location, download_dir, hashes=hashes)
+        unpack_file_url(link, location, download_dir, hashes=hashes, toto_verify=toto_verify)
 
     # http urls
     else:
@@ -856,10 +845,10 @@ def unpack_url(link, location, download_dir=None,
             location,
             download_dir,
             session,
-            hashes=hashes
+            hashes=hashes,
+            toto_verify=toto_verify
         )
     if only_download:
-        print "if only_download"
         write_delete_marker_file(location)
 
 
@@ -917,7 +906,7 @@ def _download_http_url(link, session, temp_dir, hashes):
         if ext:
             filename += ext
     file_path = os.path.join(temp_dir, filename)
-    print "Path: "+ temp_dir
+    ####print "Path: "+ temp_dir
     with open(file_path, 'wb') as content_file:
         _download_url(resp, link, content_file, hashes)
     return file_path, content_type
@@ -934,7 +923,6 @@ def _check_download_dir(link, download_dir, hashes):
         if hashes:
             try:
                 hashes.check_against_path(download_path)
-                print "download:"+ download_path
             except HashMismatch:
                 logger.warning(
                     'Previously-downloaded file %s has bad hash. '
@@ -1016,8 +1004,19 @@ def in_toto_verify(layout_path, layout_key_paths):
 
     log.passing("all verification")
 
-def in_toto_verify_wrapper(location):
+def in_toto_verify_wrapper(location, toto_verify=None, layout_path="root.layout", layout_keys="alice.pub" ):
     original_cwd = os.getcwd()
     os.chdir(location)
-    in_toto_verify("root.layout", {'alice.pub'})
+    #in_toto_verify("root.layout", ['alice.pub'])
+    ####print "intoto_verify_wrapper(toto_verify):"
+    ####print toto_verify
+    if toto_verify:
+        ####print "the --toto-verify option was used in the wrapper"
+        layout_key_paths = toto_verify[1].split(',')
+        in_toto_verify(toto_verify[0], layout_key_paths)
+    else:
+        ####print "the default wrapper options used"
+        layout_key_paths = layout_keys.split(',')
+        in_toto_verify(layout_path, layout_key_paths)
+
     os.chdir(original_cwd)
