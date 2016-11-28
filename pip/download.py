@@ -690,7 +690,7 @@ def unpack_http_url(link, location, download_dir=None,
     #intoto verification
     in_toto_verify_wrapper(location, toto_verify=toto_verify)
     #####################
-
+    
     rmtree(temp_dir)
 
 
@@ -702,6 +702,7 @@ def unpack_file_url(link, location, download_dir=None, hashes=None, toto_verify=
     """
     link_path = url_to_path(link.url_without_fragment)
     ####print "unpack_file_url()"
+    ####print location
     # If it's a url to a local directory
     if is_dir_url(link):
         if os.path.isdir(location):
@@ -739,7 +740,7 @@ def unpack_file_url(link, location, download_dir=None, hashes=None, toto_verify=
     unpack_file(from_path, location, content_type, link)
     
     #intoto verification
-    ####print "about to delete location: %s" % location
+    #print "about to delete location: %s" % location
     in_toto_verify_wrapper(location, toto_verify=toto_verify)
 
     # a download dir is specified and not already downloaded
@@ -937,7 +938,8 @@ def _check_download_dir(link, download_dir, hashes):
 
 def _die(msg, exitcode=1):
             log.failing(msg)
-            # sys.exit(exitcode)
+            log.doing("Stopping installation process.")
+            sys.exit(exitcode)
 
 def in_toto_verify(layout_path, layout_key_paths):
     try:
@@ -1006,17 +1008,17 @@ def in_toto_verify(layout_path, layout_key_paths):
 
 def in_toto_verify_wrapper(location, toto_verify=None, layout_path="root.layout", layout_keys="alice.pub" ):
     original_cwd = os.getcwd()
-    os.chdir(location)
     #in_toto_verify("root.layout", ['alice.pub'])
     ####print "intoto_verify_wrapper(toto_verify):"
     ####print toto_verify
     if toto_verify:
         ####print "the --toto-verify option was used in the wrapper"
+        os.chdir(location)
         layout_key_paths = toto_verify[1].split(',')
         in_toto_verify(toto_verify[0], layout_key_paths)
-    else:
+    #else:
         ####print "the default wrapper options used"
-        layout_key_paths = layout_keys.split(',')
-        in_toto_verify(layout_path, layout_key_paths)
+        #layout_key_paths = layout_keys.split(',')
+        #in_toto_verify(layout_path, layout_key_paths)
 
     os.chdir(original_cwd)
