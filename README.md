@@ -31,3 +31,7 @@ pip-in-toto options
 		* EXAMPLE: pip install MyDemoProject3 --toto-default
 
 
+Sample packages pip installable with pip-in-toto
+================================================
+1. MyDemoProject3
+2. MyMaliciousProject
