@@ -33,5 +33,5 @@ pip-in-toto options
 
 Sample packages pip installable with pip-in-toto
 ================================================
-1. MyDemoProject3
-2. MyMaliciousProject
+* MyDemoProject3
+* MyMaliciousProject
