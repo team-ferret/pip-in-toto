@@ -1,6 +1,7 @@
 About
 =====
-This is a modified version of pip that integrates in-toto verification.
+* This is a modified version of pip that integrates in-toto verification.
+* It assumes that there is an outer package, containing the payload package and the files necessary for toto-verification. 
 
 pip-in-toto installation
 =====================
@@ -21,12 +22,12 @@ pip install -e .
 
 ```
 
-pip-in-toto commands
-====================
+pip-in-toto options
+===================
 * The following options are now valid when using pip install
-	* --toto-verify <layout> <layout-keys> 
+	* --toto-verify "<layout>" "<layout-keys>"" 
 		* EXAMPLE: pip install MyDemoProject3 --toto-verify root.layout alice.pub
-	* --toto-default: (This command requires no arguments. It assumes a layout of "root.layout" and layout-key of "alice.pub")
+	* --toto-default: (Assumes a default layout of "root.layout" and layout-key of "alice.pub")
 		* EXAMPLE: pip install MyDemoProject3 --toto-default
 
 
