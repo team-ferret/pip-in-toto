@@ -25,8 +25,8 @@ pip-in-toto commands
 ====================
 * The following options are now valid when using pip install
 	* --toto-verify <layout> <layout-keys> 
-		EXAMPLE: pip install MyDemoProject3 --toto-verify root.layout alice.pub
-	* --toto-default (This command requires no arguments. It assumes a layout of "root.layout" and layout-key of "alice.pub")
-		EXAMPLE: pip install MyDemoProject3 --toto-default
+		* EXAMPLE: pip install MyDemoProject3 --toto-verify root.layout alice.pub
+	* --toto-default: (This command requires no arguments. It assumes a layout of "root.layout" and layout-key of "alice.pub")
+		* EXAMPLE: pip install MyDemoProject3 --toto-default
 
 
