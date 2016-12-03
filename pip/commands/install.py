@@ -193,6 +193,14 @@ class InstallCommand(RequirementCommand):
             help="toto verify <layout> <layout-keys>",
         )
 
+        cmd_opts.add_option(
+            "--toto-default",
+            action="store_true",
+            dest='toto_default',
+            help="Performs toto-verify and assumes a layout of root.layout and a layout key of alice.pub>",
+        )
+        
+
         cmd_opts.add_option(cmdoptions.use_wheel())
         cmd_opts.add_option(cmdoptions.no_use_wheel())
         cmd_opts.add_option(cmdoptions.no_binary())
@@ -213,7 +221,6 @@ class InstallCommand(RequirementCommand):
         
         cmdoptions.resolve_wheel_no_use_binary(options)
         cmdoptions.check_install_build_global(options)
-
         if options.as_egg:
             warnings.warn(
                 "--egg has been deprecated and will be removed in the future. "
@@ -326,7 +333,8 @@ class InstallCommand(RequirementCommand):
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
                     require_hashes=options.require_hashes,
-                    toto_verify=options.toto_verify
+                    toto_verify=options.toto_verify,
+                    toto_default=options.toto_default
                 )
 
                 self.populate_requirement_set(

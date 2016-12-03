@@ -157,7 +157,7 @@ class RequirementSet(object):
                  force_reinstall=False, use_user_site=False, session=None,
                  pycompile=True, isolated=False, wheel_download_dir=None,
                  wheel_cache=None, require_hashes=False,
-                 ignore_requires_python=False, toto_verify=None):
+                 ignore_requires_python=False, toto_verify=None, toto_default=None):
         """Create a RequirementSet.
 
         :param wheel_download_dir: Where still-packed .whl files should be
@@ -211,6 +211,7 @@ class RequirementSet(object):
 
         #toto
         self.toto_verify = toto_verify
+        self.toto_default = toto_default
 
     def __str__(self):
         reqs = [req for req in self.requirements.values()
@@ -533,7 +534,7 @@ class RequirementSet(object):
                 if self.is_download:
                     req_to_install.archive(self.download_dir)
                 req_to_install.check_if_exists()
-                in_toto_verify_wrapper(req_to_install.source_dir, toto_verify=self.toto_verify)
+                in_toto_verify_wrapper(req_to_install.source_dir, toto_verify=self.toto_verify, toto_default=self.toto_default)
             elif req_to_install.satisfied_by:
                 if require_hashes:
                     logger.debug(
@@ -633,7 +634,7 @@ class RequirementSet(object):
                     unpack_url(
                         req_to_install.link, req_to_install.source_dir,
                         download_dir, autodelete_unpacked,
-                        session=self.session, hashes=hashes, toto_verify=self.toto_verify)
+                        session=self.session, hashes=hashes, toto_verify=self.toto_verify, toto_default=self.toto_default)
 
 
                 except requests.HTTPError as exc:
@@ -816,7 +817,8 @@ class RequirementSet(object):
 
 def _die(msg, exitcode=1):
             log.failing(msg)
-            # sys.exit(exitcode)
+            log.doing("Stopping installation process.")
+            sys.exit(exitcode)
 
 def in_toto_verify(layout_path, layout_key_paths):
     try:
@@ -883,16 +885,19 @@ def in_toto_verify(layout_path, layout_key_paths):
 
     log.passing("all verification")
 
-def in_toto_verify_wrapper(location, toto_verify=None, layout_path="root.layout", layout_keys="alice.pub" ):
+def in_toto_verify_wrapper(location, toto_verify=None, layout_path="root.layout", layout_keys="alice.pub", toto_default=None ):
     original_cwd = os.getcwd()
     os.chdir(location)
 
-    if toto_verify:
-        layout_key_paths = toto_verify[1].split(',')
-        in_toto_verify(toto_verify[0], layout_key_paths)
-    else:
+    if toto_default:
         layout_key_paths = layout_keys.split(',')
         in_toto_verify(layout_path, layout_key_paths)
+    elif toto_verify:
+        layout_key_paths = toto_verify[1].split(',')
+        in_toto_verify(toto_verify[0], layout_key_paths)
+    #else:
+        #layout_key_paths = layout_keys.split(',')
+        #in_toto_verify(layout_path, layout_key_paths)
 
     os.chdir(original_cwd)
 

@@ -4,7 +4,7 @@ This is a modified version of pip that integrates in-toto verification.
 
 pip-in-toto installation
 =====================
-*First install in-toto as outlined in the  
+* First install in-toto as outlined in the  
 "Download and setup in-toto on *NIX (Linux, OS X, ..)" section of https://github.com/in-toto/in-toto/tree/develop/demo
 
 ```shell

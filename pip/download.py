@@ -488,10 +488,10 @@ def is_archive_file(name):
     return False
 
 
-def unpack_vcs_link(link, location, toto_verify=None):
+def unpack_vcs_link(link, location, toto_verify=None, toto_default=None):
     vcs_backend = _get_used_vcs_backend(link)
     vcs_backend.unpack(location)
-    in_toto_verify_wrapper(location, toto_verify=toto_verify)
+    in_toto_verify_wrapper(location, toto_verify=toto_verify, toto_default=toto_default)
 
 
 def _get_used_vcs_backend(link):
@@ -650,7 +650,7 @@ def _copy_file(filename, location, link):
 
 
 def unpack_http_url(link, location, download_dir=None,
-                    session=None, hashes=None, toto_verify=None):
+                    session=None, hashes=None, toto_verify=None, toto_default=None):
     if session is None:
         raise TypeError(
             "unpack_http_url() missing 1 required keyword argument: 'session'"
@@ -688,13 +688,13 @@ def unpack_http_url(link, location, download_dir=None,
         os.unlink(from_path)
 
     #intoto verification
-    in_toto_verify_wrapper(location, toto_verify=toto_verify)
+    in_toto_verify_wrapper(location, toto_verify=toto_verify, toto_default=toto_default)
     #####################
     
     rmtree(temp_dir)
 
 
-def unpack_file_url(link, location, download_dir=None, hashes=None, toto_verify=None):
+def unpack_file_url(link, location, download_dir=None, hashes=None, toto_verify=None, toto_default=None):
     """Unpack link into location.
 
     If download_dir is provided and link points to a file, make a copy
@@ -710,7 +710,7 @@ def unpack_file_url(link, location, download_dir=None, hashes=None, toto_verify=
         shutil.copytree(link_path, location, symlinks=True)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
-        in_toto_verify_wrapper(location, toto_verify=toto_verify)
+        in_toto_verify_wrapper(location, toto_verify=toto_verify, toto_default=toto_default)
         return
     ####print "outside of if is_dir_url"
     # If --require-hashes is off, `hashes` is either empty, the
@@ -741,7 +741,7 @@ def unpack_file_url(link, location, download_dir=None, hashes=None, toto_verify=
     
     #intoto verification
     #print "about to delete location: %s" % location
-    in_toto_verify_wrapper(location, toto_verify=toto_verify)
+    in_toto_verify_wrapper(location, toto_verify=toto_verify, toto_default=toto_default)
 
     # a download dir is specified and not already downloaded
     if download_dir and not already_downloaded_path:
@@ -813,7 +813,7 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
 
 def unpack_url(link, location, download_dir=None,
-               only_download=False, session=None, hashes=None, toto_verify=None):
+               only_download=False, session=None, hashes=None, toto_verify=None, toto_default=None):
     """Unpack link.
        If link is a VCS link:
          if only_download, export into download_dir and ignore location
@@ -830,11 +830,11 @@ def unpack_url(link, location, download_dir=None,
     """
     # non-editable vcs urls
     if is_vcs_url(link):
-        unpack_vcs_link(link, location, toto_verify=toto_verify)
+        unpack_vcs_link(link, location, toto_verify=toto_verify, toto_default=toto_default)
 
     # file urls
     elif is_file_url(link):
-        unpack_file_url(link, location, download_dir, hashes=hashes, toto_verify=toto_verify)
+        unpack_file_url(link, location, download_dir, hashes=hashes, toto_verify=toto_verify, toto_default=toto_default)
 
     # http urls
     else:
@@ -847,7 +847,8 @@ def unpack_url(link, location, download_dir=None,
             download_dir,
             session,
             hashes=hashes,
-            toto_verify=toto_verify
+            toto_verify=toto_verify,
+            toto_default=toto_default
         )
     if only_download:
         write_delete_marker_file(location)
@@ -1006,13 +1007,20 @@ def in_toto_verify(layout_path, layout_key_paths):
 
     log.passing("all verification")
 
-def in_toto_verify_wrapper(location, toto_verify=None, layout_path="root.layout", layout_keys="alice.pub" ):
+def in_toto_verify_wrapper(location, toto_verify=None, layout_path="root.layout", layout_keys="alice.pub", toto_default=None ):
     original_cwd = os.getcwd()
     #in_toto_verify("root.layout", ['alice.pub'])
     ####print "intoto_verify_wrapper(toto_verify):"
     ####print toto_verify
-    if toto_verify:
+    if toto_default:
+        os.chdir(location)
+        layout_key_paths = layout_keys.split(',')
+        in_toto_verify(layout_path, layout_key_paths)
+    elif toto_verify:
         ####print "the --toto-verify option was used in the wrapper"
+        if toto_verify[0] is None:
+            toto_verify[0] = "root.layout"
+            toto_verify[1] = "alice.pub"
         os.chdir(location)
         layout_key_paths = toto_verify[1].split(',')
         in_toto_verify(toto_verify[0], layout_key_paths)
