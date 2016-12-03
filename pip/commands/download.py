@@ -202,11 +202,11 @@ class DownloadCommand(RequirementCommand):
                 ])
                 if downloaded:
                     logger.info(
-                        'Successfully downloaded %s', downloaded
+                        'Successfully downloaded MAN %s', downloaded
                     )
 
                 # Clean up
-                # if not options.no_clean:
-                #     requirement_set.cleanup_files()
-      
+                if not options.no_clean:
+                    requirement_set.cleanup_files()
+
         return requirement_set
